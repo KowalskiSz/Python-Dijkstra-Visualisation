@@ -18,9 +18,12 @@ window = pygame.display.set_mode((DEFINE.window_width,DEFINE.window_height))
 pygame.display.set_caption("Djikstra Visualization")
 
 '''
-Creating the grid of boxes
+Creating the grid of boxes and queue for processing the alg
 '''
 box_grid = list()
+q = list()
+
+
 
 '''
 Creating array of BOX Oojects - each obj is a box on a grid, has its own properties and methods
@@ -44,12 +47,18 @@ for i in range(DEFINE.columns):
 
 #set the start box
 box_grid[0][0].start_box = True
-
+box_grid[0][0].inQueue =True
+q.append(box_grid[0][0])
 
 def main():
     #Before starting the alghorytm - no start flag and no target set
     FLAG_STATUS.START_ALGORYTHM = False
     FLAG_STATUS.TARGET_SET = False
+    '''
+    Variable for executing the search
+    '''
+    search_inProgress = True
+    target_box_def = None
 
     while True:
         for event in pygame.event.get():
@@ -68,17 +77,56 @@ def main():
                 a = pox_X // box_width #the coordiantes must be divided bo box dimentions to get exact coords that maches the grid positions
                 b = pox_Y // box_height
                 box_grid[a][b].target_box = True
+                target_box_def = box_grid[a][b]
                 FLAG_STATUS.TARGET_SET = True
+                #print(target_box_def)
 
             elif event.type == pygame.MOUSEMOTION and pygame.mouse.get_pressed()[0] == True:
                 '''
-                Setting the wall only whan the key is pressed and mouse is in motion
+                Setting the wall only when the key is pressed and mouse is in motion
                 '''
                 pox_X = pygame.mouse.get_pos()[0]
                 pox_Y = pygame.mouse.get_pos()[1]
                 a = pox_X // box_width
                 b = pox_Y // box_height
                 box_grid[a][b].wall_box = True
+
+            elif event.type == pygame.KEYDOWN and FLAG_STATUS.TARGET_SET:
+                FLAG_STATUS.START_ALGORYTHM = True
+
+        '''
+        Executing the search alghorytm
+        '''
+        if FLAG_STATUS.START_ALGORYTHM:
+            '''
+            alghorytm logic
+            '''
+            if len(q) > 0 and search_inProgress:
+                current_box = q.pop(0)
+                current_box.processed = True
+                '''
+                Check - if the current box object is a TARGET
+                '''
+                if current_box == target_box_def:
+                    search_inProgress = False
+                else:
+                    '''
+                    Check every neighbour of THE CURRENT OBJECT
+                    '''
+                    for n in current_box.nextToObjArray:
+                        if not n.wall_box and not n.inQueue:
+                            n.inQueue = True
+                            q.append(n)
+            else:
+                '''
+                If the SOLUTION IS NOT AVAIABLE
+                '''
+                if search_inProgress:
+                    Tk().wm_withdraw()
+                    messagebox.showinfo("No solution", "Target is unavailable")
+                    search_inProgress = False
+                    pygame.quit()
+                    sys.exit()
 
 
         window.fill((0,0,0))
@@ -94,9 +142,13 @@ def main():
                 box_grid[x][y].draw_object(DEFINE.COLOR_mainBox)
                 if box_grid[x][y].start_box:
                     box_grid[x][y].draw_object(DEFINE.COLOR_startingPoint)
-                elif box_grid[x][y].target_box:
+                if box_grid[x][y].inQueue:
+                    box_grid[x][y].draw_object(DEFINE.COLOR_inQueue)
+                if box_grid[x][y].processed:
+                    box_grid[x][y].draw_object(DEFINE.COLOR_visited)
+                if box_grid[x][y].target_box:
                     box_grid[x][y].draw_object(DEFINE.COLOR_target)
-                elif box_grid[x][y].wall_box:
+                if box_grid[x][y].wall_box:
                     box_grid[x][y].draw_object(DEFINE.COLOR_wallPoint)
 
         pygame.display.flip()
